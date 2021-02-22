@@ -1422,10 +1422,10 @@ static bool ui_but_event_property_operator_string(const bContext *C,
     // printf("prop shortcut: '%s' (%s)\n", RNA_property_identifier(prop), data_path);
   }
 
-  /* we have a datapath! */
+  /* We have a data-path! */
   bool found = false;
   if (data_path || (prop_enum_value_ok && prop_enum_value_id)) {
-    /* create a property to host the "datapath" property we're sending to the operators */
+    /* Create a property to host the "data_path" property we're sending to the operators. */
     IDProperty *prop_path;
 
     const IDPropertyTemplate val = {0};
@@ -1945,7 +1945,7 @@ void ui_fontscale(short *points, float aspect)
   }
 }
 
-/* project button or block (but==NULL) to pixels in regionspace */
+/* Project button or block (but==NULL) to pixels in region-space. */
 static void ui_but_to_pixelrect(rcti *rect, const ARegion *region, uiBlock *block, uiBut *but)
 {
   rctf rectf;
@@ -3948,6 +3948,9 @@ uiBut *ui_but_change_type(uiBut *but, eButType new_type)
       UNUSED_VARS_NDEBUG(found_layout);
       ui_button_group_replace_but_ptr(uiLayoutGetBlock(but->layout), old_but_ptr, but);
     }
+    if (UI_editsource_enable_check()) {
+      UI_editsource_but_replace(old_but_ptr, but);
+    }
   }
 
   return but;
@@ -4024,7 +4027,7 @@ static uiBut *ui_def_but(uiBlock *block,
   but->emboss = block->emboss;
   but->pie_dir = UI_RADIAL_NONE;
 
-  but->block = block; /* pointer back, used for frontbuffer status, and picker */
+  but->block = block; /* pointer back, used for front-buffer status, and picker. */
 
   if ((block->flag & UI_BUT_ALIGN) && ui_but_can_align(but)) {
     but->alignnr = block->alignnr;
@@ -4057,7 +4060,8 @@ static uiBut *ui_def_but(uiBlock *block,
       but->drawflag |= UI_BUT_ICON_LEFT;
     }
   }
-  else if (((block->flag & UI_BLOCK_LOOP) && !ui_block_is_popover(block)) ||
+  else if (((block->flag & UI_BLOCK_LOOP) && !ui_block_is_popover(block) &&
+            !(block->flag & UI_BLOCK_QUICK_SETUP)) ||
            ELEM(but->type,
                 UI_BTYPE_MENU,
                 UI_BTYPE_TEXT,
@@ -4076,11 +4080,6 @@ static uiBut *ui_def_but(uiBlock *block,
     }
   }
 #endif
-
-  /* Always keep text in radio-buttons (expanded enums) center aligned. */
-  if (ELEM(but->type, UI_BTYPE_ROW)) {
-    but->drawflag &= ~UI_BUT_TEXT_LEFT;
-  }
 
   but->drawflag |= (block->flag & UI_BUT_ALIGN);
 
@@ -4747,7 +4746,7 @@ static int findBitIndex(uint x)
   return idx;
 }
 
-/* autocomplete helper functions */
+/* Auto-complete helper functions. */
 struct AutoComplete {
   size_t maxlen;
   int matches;

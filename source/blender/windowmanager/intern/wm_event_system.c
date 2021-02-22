@@ -2099,7 +2099,7 @@ static int wm_handler_operator_call(bContext *C,
           handler->op = NULL;
         }
 
-        /* Putting back screen context, reval can pass trough after modal failures! */
+        /* Putting back screen context, reval can pass through after modal failures! */
         if ((retval & OPERATOR_PASS_THROUGH) || wm_event_always_pass(event)) {
           CTX_wm_area_set(C, area);
           CTX_wm_region_set(C, region);
@@ -2820,8 +2820,14 @@ static int wm_handlers_do_intern(bContext *C, wmEvent *event, ListBase *handlers
                   ListBase single_lb = {drag, drag};
                   event->customdata = &single_lb;
 
-                  wm_operator_call_internal(
+                  int op_retval = wm_operator_call_internal(
                       C, drop->ot, drop->ptr, NULL, drop->opcontext, false, event);
+                  OPERATOR_RETVAL_CHECK(op_retval);
+
+                  if ((op_retval & OPERATOR_CANCELLED) && drop->cancel) {
+                    drop->cancel(CTX_data_main(C), drag, drop);
+                  }
+
                   action |= WM_HANDLER_BREAK;
 
                   /* Free the drags. */
@@ -5135,7 +5141,6 @@ void WM_window_cursor_keymap_status_refresh(bContext *C, wmWindow *win)
 
 /* -------------------------------------------------------------------- */
 /** \name Modal Keymap Status
- *
  * \{ */
 
 bool WM_window_modal_keymap_status_draw(bContext *C, wmWindow *win, uiLayout *layout)

@@ -560,7 +560,6 @@ static void wm_window_ghostwindow_add(wmWindowManager *wm,
                                       wmWindow *win,
                                       bool is_dialog)
 {
-
   /* a new window is created when pageflip mode is required for a window */
   GHOST_GLSettings glSettings = {0};
   if (win->stereo3d_format->display_mode == S3D_DISPLAY_PAGEFLIP) {
@@ -579,30 +578,17 @@ static void wm_window_ghostwindow_add(wmWindowManager *wm,
   wmWindow *prev_windrawable = wm->windrawable;
   wm_window_clear_drawable(wm);
 
-  GHOST_WindowHandle ghostwin;
-  if (is_dialog && win->parent) {
-    ghostwin = GHOST_CreateDialogWindow(g_system,
-                                        win->parent->ghostwin,
-                                        title,
-                                        win->posx,
-                                        posy,
-                                        win->sizex,
-                                        win->sizey,
-                                        (GHOST_TWindowState)win->windowstate,
-                                        GHOST_kDrawingContextTypeOpenGL,
-                                        glSettings);
-  }
-  else {
-    ghostwin = GHOST_CreateWindow(g_system,
-                                  title,
-                                  win->posx,
-                                  posy,
-                                  win->sizex,
-                                  win->sizey,
-                                  (GHOST_TWindowState)win->windowstate,
-                                  GHOST_kDrawingContextTypeOpenGL,
-                                  glSettings);
-  }
+  GHOST_WindowHandle ghostwin = GHOST_CreateWindow(g_system,
+                                                   (win->parent) ? win->parent->ghostwin : NULL,
+                                                   title,
+                                                   win->posx,
+                                                   posy,
+                                                   win->sizex,
+                                                   win->sizey,
+                                                   (GHOST_TWindowState)win->windowstate,
+                                                   is_dialog,
+                                                   GHOST_kDrawingContextTypeOpenGL,
+                                                   glSettings);
 
   if (ghostwin) {
     win->gpuctx = GPU_context_create(ghostwin);
@@ -858,13 +844,15 @@ wmWindow *WM_window_open_temp(bContext *C,
   /* changes rect to fit within desktop */
   wm_window_check_position(&rect);
 
-  /* Reuse temporary or dialog window if one is open (but don't use a dialog for a regular
-   * temporary window, or vice versa). */
+  /* Reuse temporary windows when they share the same title. */
   wmWindow *win = NULL;
   LISTBASE_FOREACH (wmWindow *, win_iter, &wm->windows) {
-    if (WM_window_is_temp_screen(win_iter) &&
-        (dialog == GHOST_IsDialogWindow(win_iter->ghostwin))) {
-      win = win_iter;
+    if (WM_window_is_temp_screen(win_iter)) {
+      char *wintitle = GHOST_GetTitle(win_iter->ghostwin);
+      if (strcmp(title, wintitle) == 0) {
+        win = win_iter;
+      }
+      free(wintitle);
     }
   }
 
@@ -1937,7 +1925,6 @@ bool wm_window_get_swap_interval(wmWindow *win, int *intervalOut)
 
 /* -------------------------------------------------------------------- */
 /** \name Find Window Utility
- *
  * \{ */
 static void wm_window_desktop_pos_get(const wmWindow *win,
                                       const int screen_pos[2],
@@ -2038,7 +2025,7 @@ uint *WM_window_pixels_read(wmWindowManager *wm, wmWindow *win, int r_size[2])
   const uint rect_len = r_size[0] * r_size[1];
   uint *rect = MEM_mallocN(sizeof(*rect) * rect_len, __func__);
 
-  GPU_frontbuffer_read_pixels(0, 0, r_size[0], r_size[1], 4, GPU_DATA_UNSIGNED_BYTE, rect);
+  GPU_frontbuffer_read_pixels(0, 0, r_size[0], r_size[1], 4, GPU_DATA_UBYTE, rect);
 
   if (setup_context) {
     if (wm->windrawable) {
